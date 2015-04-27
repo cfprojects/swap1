@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+	<title>cf_sessionSwap Documentation</title>
+	<style type="text/css">
+	body, td {
+		font-family: Arial;
+		font-size: 12px;
+		}
+	th {
+		font-family: Arial;
+		font-size: 14px;
+		font-weight: bold;
+		background-color:#dcdcdc;
+		}
+	.small{font-size:10px;}
+	h1 {font-size:22px;color:#ffffff;background-color:#000000;padding:3px 3px 3px 10px;}
+	h2 {font-size:18px;}
+	h3 {font-size:14px;background-color:#cecece;padding:3px 3px 3px 10px;}
+	a {color:#0000ff;text-decoration:none;}
+	a:hover {text-decoration:underline;color:#ff0000}
+	pre {background-color:#f0f0f0;border:1px solid #dddddd; padding:3px;margin:0px;}
+	</style>
+</head>
+<body>
+<h1>cf_sessionSwap Documentation</h1>
+<div class="small">
+	Version: 0.3<br>
+	Build Date: 5/9/2009<br>
+	Created By: <a href="mailto:john@blayter.com?subject=sessionSwap">John Blayter</a><br>
+	<a href="http://sessionswap.riaforge.org">Project Page</a> | <a href="http://sessionswap.riaforge.org/index.cfm?event=page.forums">Forums</a><br/>
+	License: <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2</a><br/>
+	<h2>Revision History</h2>
+	<table>
+		<tr>
+			<td valign="top">0.3</td>
+			<td>
+				It is all about the documentation 
+			</td>
+		</tr>
+		<tr>
+			<td valign="top">0.2</td>
+			<td>
+				Complete refactor of the tag to try and make this as fast and secure as possible. 
+			</td>
+		</tr>
+		<tr>
+			<td valign="top">0.1</td>
+			<td>Initial concept created by John Blayter years ago based on Sarge Sargent's idea. This version used WDDX for the serialization and worked okay but was slow if you had large session scopes.</td>
+		</tr>
+	</table>
+</div>
+
+<a name="overview"></a><h1>Overview</h1>
+<p>cf_sessionSwap is a ColdFusion custom tag that persists session information into the database and can rebuild it upon the user being directed to another ColdFusion server or if their session was dropped from ColdFusion restarting.</p>
+
+<a name="installation"></a><h1>How it works</h1>
+<p>
+	This code does not rely on the usual CFID/CFTOKEN OR JSESSIONID. There
+	is an UUID application variable that gets set in your application to
+	identify it. From there 3 non-persistent cookies are dropped on the
+	client's browser. 2 of the cookies are UUIDs identifying them as a
+	user and a and the value of the application UUID is set as the last
+	instance that they were on. As a user flops over to another instance
+	or server they will get new session tokens from CF and reload the rest
+	of the variables from the DB.
+</p>
+<h2>Following the request</h2>
+<ol>
+	<li>Your server starts up for the first time and you have no users yet</li>
+	<li>
+		The first user comes in and the Application.cfc is hit for the first time. The onRequestStart function is fired and hits the cf_sessionSwap tag.
+		Inside the tag the application.sessionSwap.uuid variable is set to a UUID to later identify this instance of your application. The tag will also 
+		drop 2 non-persistant cookies to later idendify the user. <strong>_SSID1</strong> and <strong>_SSID2</strong> are set with UUIDs for the values.
+		The session scope at this point is serialized into a Java Byte code, then base64 encoded and placed in the request.sessionSwap.compare variable.
+		At this point control is given back to the Application.cfc and the rest of the files in your application is run.
+	</li>
+	<li>
+		After your files are done being processed the onRequestEnd in the Application.cfc is fired. The write action of the tag is called. The session
+		scope is once again serialized into Java Bype code and then base64 encoded. If the base64 string is different the string is written to the database.
+		The <strong>LastInstance</strong> cookie is dropped with the value of the application.sessionSwap.uuid. 
+	</li>
+	<li>
+		Your load balancer shoots the user to another server ... Your CF Application service dies and restarts...<br/>
+		Any reason to cause the user to loose their session even though they have not closed their browser.
+	</li>
+	<li>
+		The user's next request sees t
+	</li>
+</ol>
+<a name="installation"></a><h1>Installation</h1>
+<ol>
+	<li>Run the session_swap_mssql.sql to create the table in your database</li>
+	<li>Copy the sessionSwap.cfm into your custom tags directory</li>
+	<li>Call the tag from your Application.cfc (see example calls in the Application.cfc included)</li>
+	<li>Use the cleanOldSessions.cfm to purge old sessions from the database</li>
+</ol>
+
+<h2>Donate</h2>
+A shameless plug for my <a href="https://www.amazon.com/gp/registry/wishlist/35894F2WZKSLS/ref=wl_web" target="_blank">wishlist</a>. It is just as good as buying me a pint for saving you all sorts of time!
+
+
+<a name="todo"></a><h1>To do...</h1> 
+<p>Here is a list of various items I would still like to add to this tag set. I am not sure if or when they will be added. It is just a public list of ideas</p>
+<ul>
+	<li>Load test and publish results</li>
+	<li>Take longer than 3 minutes and actually write some decent documentation on this.</li>
+</ul>
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("UA-139648-2");
+pageTracker._initData();
+pageTracker._trackPageview();
+</script>
+</body>
+</html>
